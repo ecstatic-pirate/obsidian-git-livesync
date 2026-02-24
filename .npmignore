@@ -1,0 +1,14 @@
+src/
+tests/
+scripts/validate.ts
+tsconfig.json
+tsconfig.scripts.json
+tsconfig.test.json
+.github/
+.git/
+.gitignore
+.DS_Store
+couchdb_data/
+node_modules/
+*.js.map
+.env

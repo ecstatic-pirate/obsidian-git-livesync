@@ -3,14 +3,30 @@
   "version": "0.1.0",
   "description": "Bridge git pushes to Obsidian via CouchDB + Self-hosted LiveSync plugin",
   "type": "module",
-  "main": "dist/cli.cjs",
-  "module": "dist/cli.js",
-  "types": "dist/cli.d.ts",
-  "bin": {
-    "obsidian-git-livesync": "dist/cli.js"
+  "main": "./dist/cli.cjs",
+  "module": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js",
+      "require": "./dist/cli.cjs"
+    }
   },
+  "bin": {
+    "obsidian-git-livesync": "./dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "hooks/",
+    "scripts/setup-couchdb.sh",
+    "docker-compose.yml",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup src/cli.ts --format esm,cjs --dts",
+    "postbuild": "node -e \"const fs=require('fs'); ['dist/cli.js','dist/cli.cjs'].forEach(f=>{const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);});\"",
     "start": "node dist/cli.js",
     "dev": "tsx src/cli.ts",
     "validate": "npx tsx scripts/validate.ts",
@@ -18,23 +34,37 @@
     "test": "npm run test:unit",
     "test:unit": "npx tsx tests/couchdb-client.test.ts",
     "test:e2e": "npx tsx tests/e2e.ts",
-    "test:all": "npm run test:unit && npm run test:e2e"
+    "test:all": "npm run test:unit && npm run test:e2e",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "obsidian",
     "livesync",
     "couchdb",
+    "sync",
     "git",
-    "sync"
+    "markdown",
+    "cli"
   ],
   "license": "MIT",
+  "author": "Shantanu Garg",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecstatic-pirate/obsidian-git-livesync"
+  },
+  "homepage": "https://github.com/ecstatic-pirate/obsidian-git-livesync#readme",
+  "bugs": {
+    "url": "https://github.com/ecstatic-pirate/obsidian-git-livesync/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0"
   },
-  "author": "",
   "dependencies": {
     "chokidar": "^5.0.0",
     "commander": "^14.0.3"
