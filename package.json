@@ -1,0 +1,32 @@
+{
+  "name": "obsidian-git-livesync",
+  "version": "0.1.0",
+  "description": "Bridge git pushes to Obsidian via CouchDB + Self-hosted LiveSync plugin",
+  "type": "module",
+  "main": "dist/cli.cjs",
+  "module": "dist/cli.js",
+  "types": "dist/cli.d.ts",
+  "bin": {
+    "obsidian-git-livesync": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm,cjs --dts",
+    "validate": "npx tsx scripts/validate.ts",
+    "setup-db": "bash scripts/setup-couchdb.sh"
+  },
+  "keywords": [
+    "obsidian",
+    "livesync",
+    "couchdb",
+    "git",
+    "sync"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0"
+  },
+  "author": ""
+}
