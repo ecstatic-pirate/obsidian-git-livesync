@@ -11,6 +11,8 @@
   },
   "scripts": {
     "build": "tsup src/cli.ts --format esm,cjs --dts",
+    "start": "node dist/cli.js",
+    "dev": "tsx src/cli.ts",
     "validate": "npx tsx scripts/validate.ts",
     "setup-db": "bash scripts/setup-couchdb.sh"
   },
@@ -28,5 +30,9 @@
     "tsx": "^4.0.0",
     "typescript": "^5.5.0"
   },
-  "author": ""
+  "author": "",
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "commander": "^14.0.3"
+  }
 }
