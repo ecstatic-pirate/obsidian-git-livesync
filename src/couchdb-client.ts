@@ -10,6 +10,8 @@
  * This client writes in that format so the LiveSync plugin picks up files.
  */
 
+import { createHash } from "node:crypto";
+
 export interface CouchDBClientOptions {
   url: string; // e.g. "http://localhost:5984"
   database: string; // e.g. "obsidian-livesync"
@@ -132,16 +134,13 @@ export class CouchDBClient {
   }
 
   /**
-   * Generate a simple hash-based chunk ID for LiveSync leaf documents.
-   * Uses a basic djb2 hash since we don't need cryptographic strength.
+   * Generate a hash-based chunk ID for LiveSync leaf documents.
+   * Uses SHA-256 truncated to 40 hex characters.
    * Prefixed with "h:" to match LiveSync convention.
    */
   private chunkId(content: string): string {
-    let hash = 5381;
-    for (let i = 0; i < content.length; i++) {
-      hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;
-    }
-    return `h:${hash.toString(16).padStart(8, "0")}`;
+    const hash = createHash("sha256").update(content).digest("hex").slice(0, 40);
+    return `h:${hash}`;
   }
 
   /**
@@ -154,8 +153,13 @@ export class CouchDBClient {
     options?: { ctime?: number; mtime?: number }
   ): Promise<{ metaId: string; leafId: string }> {
     const now = Date.now();
-    const ctime = options?.ctime ?? now;
     const mtime = options?.mtime ?? now;
+
+    // Check if metadata doc already exists (need _rev for update)
+    const existingMeta = await this.get<LiveSyncDocument>(path);
+
+    // Preserve original ctime on updates; fall back to option or now for new files
+    const ctime = options?.ctime ?? existingMeta?.ctime ?? now;
 
     // Create the leaf document
     const leafId = this.chunkId(content);
@@ -170,9 +174,6 @@ export class CouchDBClient {
       });
     }
 
-    // Check if metadata doc already exists (need _rev for update)
-    const existingMeta = await this.get<LiveSyncDocument>(path);
-
     const metaDoc: Record<string, unknown> = {
       _id: path,
       type: "plain",
@@ -180,7 +181,7 @@ export class CouchDBClient {
       children: [leafId],
       ctime,
       mtime,
-      size: content.length,
+      size: Buffer.byteLength(content, "utf8"),
       eden: {},
     };
 

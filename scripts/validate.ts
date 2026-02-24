@@ -104,6 +104,47 @@ async function validate(): Promise<void> {
     fail("Cleanup", e);
   }
 
+  // Test 6: Subdirectory path round-trip
+  const nestedPath = "test-folder/nested/test-sync.md";
+  const nestedContent = `# Nested Test\n\nSubdirectory sync at ${new Date().toISOString()}`;
+
+  console.log(`\n[6] Writing subdirectory file '${nestedPath}'...`);
+  try {
+    const { metaId, leafId } = await client.writeFile(nestedPath, nestedContent);
+    pass(`Wrote nested file (meta=${metaId}, leaf=${leafId})`);
+  } catch (e) {
+    fail("Write nested file", e);
+  }
+
+  console.log(`\n[7] Reading back '${nestedPath}' and verifying...`);
+  try {
+    const readBack = await client.readFile(nestedPath);
+    if (readBack === null) {
+      throw new Error("Nested file not found after write");
+    }
+    if (readBack !== nestedContent) {
+      throw new Error(
+        `Content mismatch:\n  expected: ${JSON.stringify(nestedContent)}\n  got:      ${JSON.stringify(readBack)}`
+      );
+    }
+    pass("Nested file content matches after round-trip");
+  } catch (e) {
+    fail("Read and verify nested file", e);
+  }
+
+  console.log(`\n[8] Cleaning up nested file...`);
+  try {
+    const nestedMeta = await client.get<{ _id: string; _rev: string }>(nestedPath);
+    if (nestedMeta && nestedMeta._rev) {
+      await client.delete(nestedPath, nestedMeta._rev);
+      pass("Nested file deleted");
+    } else {
+      pass("Nested file already gone");
+    }
+  } catch (e) {
+    fail("Cleanup nested file", e);
+  }
+
   // Summary
   console.log("\n================================");
   console.log(`Results: ${passed} passed, ${failed} failed`);

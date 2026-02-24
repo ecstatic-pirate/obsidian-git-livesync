@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-COUCH_URL="http://admin:password@localhost:5984"
+COUCH_USER="admin"
+COUCH_PASS="password"
+COUCH_URL="http://${COUCH_USER}:${COUCH_PASS}@localhost:5984"
 
 echo "Waiting for CouchDB to be ready..."
 for i in $(seq 1 30); do
@@ -20,7 +22,7 @@ done
 echo "Configuring single-node cluster..."
 curl -sf -X POST "$COUCH_URL/_cluster_setup" \
   -H "Content-Type: application/json" \
-  -d '{"action":"enable_single_node","username":"admin","password":"password","bind_address":"0.0.0.0","port":5984}' \
+  -d "{\"action\":\"enable_single_node\",\"username\":\"${COUCH_USER}\",\"password\":\"${COUCH_PASS}\",\"bind_address\":\"0.0.0.0\",\"port\":5984}" \
   || echo "(cluster may already be configured)"
 
 # Create the database
@@ -62,4 +64,4 @@ echo ""
 echo "CouchDB setup complete!"
 echo "  URL: http://localhost:5984"
 echo "  Database: obsidian-livesync"
-echo "  User: admin / password"
+echo "  User: ${COUCH_USER} / ${COUCH_PASS}"
