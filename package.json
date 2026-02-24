@@ -14,7 +14,7 @@
     }
   },
   "bin": {
-    "obsidian-git-livesync": "./dist/cli.js"
+    "obsidian-git-livesync": "./dist/cli.cjs"
   },
   "files": [
     "dist/",
