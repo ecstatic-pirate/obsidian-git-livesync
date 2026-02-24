@@ -65,6 +65,12 @@ export async function syncFiles(
         continue;
       }
 
+      const textExtensions = [".md", ".txt", ".canvas", ".csv", ".svg", ".html", ".css", ".js", ".xml"];
+      if (!textExtensions.includes(extname(filePath).toLowerCase())) {
+        console.warn(`[SKIP] ${filePath}: binary file (not supported yet)`);
+        continue;
+      }
+
       const stat = statSync(absPath);
       const content = readFileSync(absPath, "utf-8");
 
@@ -123,17 +129,45 @@ export async function deleteFile(
 }
 
 /**
- * Sync files changed in the last git commit.
+ * Sync files changed between two git refs (or the last commit by default).
  */
-export async function syncGitChanges(config: Config): Promise<SyncResult> {
+export async function syncGitChanges(
+  config: Config,
+  options: { fromRef?: string; toRef?: string; extensions?: string[] } = {}
+): Promise<SyncResult> {
   const result: SyncResult = { synced: [], deleted: [], errors: [] };
+  const extensions = options.extensions ?? config.extensions;
+
+  // Detect initial commit so we don't run HEAD~1 on a repo with one commit
+  let commitCount: number;
+  try {
+    commitCount = parseInt(
+      execSync("git rev-list --count HEAD", { cwd: config.vaultRoot, encoding: "utf-8" }).trim(),
+      10
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[ERROR] Failed to count commits: ${message}`);
+    return result;
+  }
 
   let diffOutput: string;
   try {
-    diffOutput = execSync("git diff --name-status HEAD~1 HEAD", {
-      cwd: config.vaultRoot,
-      encoding: "utf-8",
-    }).trim();
+    if (commitCount === 1 && !options.fromRef) {
+      // Initial commit — diff against the empty tree
+      console.log("[GIT] Initial commit detected — syncing all files in this commit");
+      diffOutput = execSync("git diff-tree --no-commit-id -r --name-status HEAD", {
+        cwd: config.vaultRoot,
+        encoding: "utf-8",
+      }).trim();
+    } else {
+      const from = options.fromRef ?? "HEAD~1";
+      const to = options.toRef ?? "HEAD";
+      diffOutput = execSync(`git diff --name-status ${from} ${to}`, {
+        cwd: config.vaultRoot,
+        encoding: "utf-8",
+      }).trim();
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[ERROR] Failed to get git diff: ${message}`);
@@ -154,7 +188,7 @@ export async function syncGitChanges(config: Config): Promise<SyncResult> {
 
     const [, status, filePath] = match;
     const ext = extname(filePath);
-    if (!config.extensions.includes(ext)) continue;
+    if (!extensions.includes(ext)) continue;
 
     if (status === "D") {
       deleted.push(filePath);
@@ -185,14 +219,13 @@ export async function syncGitChanges(config: Config): Promise<SyncResult> {
  */
 function collectFiles(dir: string, rootDir: string, extensions: string[]): string[] {
   const files: string[] = [];
-  const ignorePatterns = [".git", ".obsidian", "node_modules"];
+  const ignorePatterns = [".git", ".obsidian", ".trash", ".stversions", "node_modules"];
 
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith(".") && ignorePatterns.includes(entry.name)) continue;
-
     const fullPath = resolve(dir, entry.name);
     if (entry.isDirectory()) {
-      if (ignorePatterns.includes(entry.name)) continue;
+      // Skip ALL dot-directories and named ignores
+      if (entry.name.startsWith(".") || ignorePatterns.includes(entry.name)) continue;
       files.push(...collectFiles(fullPath, rootDir, extensions));
     } else if (entry.isFile()) {
       const ext = extname(entry.name);

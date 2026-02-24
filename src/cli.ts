@@ -38,12 +38,16 @@ program
   .option("--debounce <ms>", "debounce interval in ms", "200")
   .action(async (files: string[], opts: Record<string, unknown>) => {
     const globalOpts = program.opts();
+    const debounce = parseInt(opts.debounce as string, 10);
+    if (isNaN(debounce) || debounce < 0) {
+      program.error("--debounce must be a non-negative integer");
+    }
     const config = loadConfig({
       configPath: globalOpts.config as string | undefined,
       verbose: globalOpts.verbose as boolean,
       dryRun: globalOpts.dryRun as boolean,
       extensions: (opts.extensions as string).split(",").map((e: string) => e.trim()),
-      debounce: parseInt(opts.debounce as string, 10),
+      debounce,
     });
 
     const errors = validateConfig(config);
@@ -79,12 +83,16 @@ program
   .option("--debounce <ms>", "debounce interval in ms", "200")
   .action((dir: string | undefined, opts: Record<string, unknown>) => {
     const globalOpts = program.opts();
+    const debounce = parseInt(opts.debounce as string, 10);
+    if (isNaN(debounce) || debounce < 0) {
+      program.error("--debounce must be a non-negative integer");
+    }
     const config = loadConfig({
       configPath: globalOpts.config as string | undefined,
       verbose: globalOpts.verbose as boolean,
       dryRun: globalOpts.dryRun as boolean,
       extensions: (opts.extensions as string).split(",").map((e: string) => e.trim()),
-      debounce: parseInt(opts.debounce as string, 10),
+      debounce,
     });
 
     if (dir) config.vaultRoot = dir;

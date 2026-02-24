@@ -12,6 +12,10 @@
 # Required: obsidian-git-livesync must be installed globally or available via npx.
 # Configure via environment variables or .obsidian-git-livesync.json in the repo root.
 
+# Configure file extensions to sync (space-separated glob patterns)
+EXTENSIONS="*.md"
+# To sync additional types, add patterns: EXTENSIONS="*.md *.canvas *.txt"
+
 while read oldrev newrev refname; do
   # Only process pushes to main/master
   branch=$(echo "$refname" | sed 's|refs/heads/||')
@@ -19,16 +23,22 @@ while read oldrev newrev refname; do
     continue
   fi
 
-  # Get list of changed .md files between old and new revisions
+  # Count changed files matching EXTENSIONS (null-delimited for safety)
   if [ "$oldrev" = "0000000000000000000000000000000000000000" ]; then
-    # New branch — sync all files
-    changed_files=$(git diff-tree --no-commit-id --name-only -r "$newrev" -- '*.md')
+    # Initial push — sync all matching files in the new commit
+    file_count=$(git diff-tree --no-commit-id -r -z --name-only "$newrev" -- $EXTENSIONS | tr -cd '\0' | wc -c | tr -d ' ')
   else
-    changed_files=$(git diff --name-only "$oldrev" "$newrev" -- '*.md')
+    file_count=$(git diff -z --name-only "$oldrev" "$newrev" -- $EXTENSIONS | tr -cd '\0' | wc -c | tr -d ' ')
   fi
 
-  if [ -n "$changed_files" ]; then
-    echo "[obsidian-git-livesync] Syncing $(echo "$changed_files" | wc -l | tr -d ' ') changed files..."
-    echo "$changed_files" | xargs npx obsidian-git-livesync sync
+  if [ "$file_count" -gt 0 ]; then
+    echo "[obsidian-git-livesync] Syncing ${file_count} changed files..."
+    if [ "$oldrev" = "0000000000000000000000000000000000000000" ]; then
+      git diff-tree --no-commit-id -r -z --name-only "$newrev" -- $EXTENSIONS \
+        | xargs -0 npx obsidian-git-livesync sync --
+    else
+      git diff -z --name-only "$oldrev" "$newrev" -- $EXTENSIONS \
+        | xargs -0 npx obsidian-git-livesync sync --
+    fi
   fi
 done

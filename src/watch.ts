@@ -26,27 +26,16 @@ export function watchVault(config: Config): FSWatcher {
   console.log(`[WATCH] Debounce: ${config.debounce}ms`);
   if (config.dryRun) console.log("[WATCH] Dry-run mode — no changes will be synced");
 
-  const pendingChanges = new Map<string, NodeJS.Timeout>();
-
   function debouncedSync(absPath: string): void {
     const relPath = relative(dir, absPath);
     const ext = extname(relPath);
     if (!config.extensions.includes(ext)) return;
 
-    // Clear any pending debounce for this path
-    const existing = pendingChanges.get(relPath);
-    if (existing) clearTimeout(existing);
-
-    const timeout = setTimeout(() => {
-      pendingChanges.delete(relPath);
-      console.log(`[WATCH] Detected change: ${relPath}`);
-      syncFiles([relPath], config).catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(`[WATCH ERROR] ${relPath}: ${message}`);
-      });
-    }, config.debounce);
-
-    pendingChanges.set(relPath, timeout);
+    console.log(`[WATCH] Detected change: ${relPath}`);
+    syncFiles([relPath], config).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[WATCH ERROR] ${relPath}: ${message}`);
+    });
   }
 
   function debouncedDelete(absPath: string): void {
@@ -54,19 +43,11 @@ export function watchVault(config: Config): FSWatcher {
     const ext = extname(relPath);
     if (!config.extensions.includes(ext)) return;
 
-    const existing = pendingChanges.get(relPath);
-    if (existing) clearTimeout(existing);
-
-    const timeout = setTimeout(() => {
-      pendingChanges.delete(relPath);
-      console.log(`[WATCH] Detected delete: ${relPath}`);
-      deleteFile(relPath, config).catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(`[WATCH ERROR] ${relPath}: ${message}`);
-      });
-    }, config.debounce);
-
-    pendingChanges.set(relPath, timeout);
+    console.log(`[WATCH] Detected delete: ${relPath}`);
+    deleteFile(relPath, config).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[WATCH ERROR] ${relPath}: ${message}`);
+    });
   }
 
   const watcher = chokidar.watch(dir, {

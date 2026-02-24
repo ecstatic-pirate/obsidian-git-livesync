@@ -124,7 +124,7 @@ export class CouchDBClient {
    */
   async delete(id: string, rev: string): Promise<{ ok: boolean }> {
     const res = await fetch(
-      `${this.baseUrl}/${encodeURIComponent(id)}?rev=${rev}`,
+      `${this.baseUrl}/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`,
       { method: "DELETE", headers: this.headers }
     );
     if (!res.ok) {
