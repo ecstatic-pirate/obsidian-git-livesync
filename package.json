@@ -15,8 +15,10 @@
     "dev": "tsx src/cli.ts",
     "validate": "npx tsx scripts/validate.ts",
     "setup-db": "bash scripts/setup-couchdb.sh",
-    "test": "npx tsx tests/couchdb-client.test.ts",
-    "test:e2e": "npx tsx tests/e2e.ts"
+    "test": "npm run test:unit",
+    "test:unit": "npx tsx tests/couchdb-client.test.ts",
+    "test:e2e": "npx tsx tests/e2e.ts",
+    "test:all": "npm run test:unit && npm run test:e2e"
   },
   "keywords": [
     "obsidian",
