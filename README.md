@@ -35,31 +35,42 @@ git push --> post-receive hook
 
 ### 1. Start CouchDB
 
+Clone this repo and start CouchDB using the included Docker Compose file:
+
 ```bash
+git clone https://github.com/ecstatic-pirate/obsidian-git-livesync
+cd obsidian-git-livesync
 docker compose up -d
 bash scripts/setup-couchdb.sh
 ```
 
-### 2. Install and configure
+The Docker defaults are `admin` / `password`. Edit `docker-compose.yml` before running if you want different credentials.
+
+### 2. Init and configure
 
 ```bash
 npx obsidian-git-livesync init
-# Edit .obsidian-git-livesync.json with your CouchDB credentials
+# Edit .obsidian-git-livesync.json — fill in couchdbUser and couchdbPassword
+# Docker defaults: admin / password
 ```
 
-### 3. Sync
+### 3. Validate the connection
 
 ```bash
-# Sync all markdown files
+npx obsidian-git-livesync validate
+# Should print: [OK] Connected to http://localhost:5984/obsidian-livesync
+```
+
+### 4. Sync
+
+```bash
+# Sync all markdown files in the current directory
 npx obsidian-git-livesync sync --all
 
 # Sync files changed in the last git commit
 npx obsidian-git-livesync sync --git
 
-# Sync specific files
-npx obsidian-git-livesync sync notes/hello.md notes/world.md
-
-# Watch for changes
+# Watch for changes in real time
 npx obsidian-git-livesync watch .
 ```
 
@@ -113,8 +124,12 @@ A `post-receive` hook is included for bare git repos. When you push to the repo,
 ### Installation
 
 ```bash
-# Copy the hook to your bare repo
+# If you cloned this repo:
 cp hooks/post-receive.sh /path/to/repo.git/hooks/post-receive
+
+# Or if installed via npm (npx or local install):
+cp node_modules/obsidian-git-livesync/hooks/post-receive.sh /path/to/repo.git/hooks/post-receive
+
 chmod +x /path/to/repo.git/hooks/post-receive
 ```
 
