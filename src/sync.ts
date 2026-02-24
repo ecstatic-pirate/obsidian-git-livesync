@@ -81,7 +81,6 @@ export async function syncFiles(
       }
 
       await client.writeFile(filePath, content, {
-        ctime: stat.ctimeMs,
         mtime: stat.mtimeMs,
       });
 
