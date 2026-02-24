@@ -6,6 +6,9 @@
  */
 
 import { Command } from "commander";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { loadConfig, validateConfig } from "./config.js";
 import { syncFiles, syncGitChanges, syncAll } from "./sync.js";
 import { watchVault } from "./watch.js";
@@ -18,12 +21,47 @@ export type {
   LiveSyncLeaf,
 } from "./couchdb-client.js";
 
+// Read version from package.json at runtime.
+// tsup bundles to dist/, so package.json is one level up.
+function getVersion(): string {
+  try {
+    const thisDir = dirname(fileURLToPath(import.meta.url));
+    const pkg = JSON.parse(readFileSync(resolve(thisDir, "..", "package.json"), "utf-8"));
+    return pkg.version;
+  } catch {
+    return "0.1.0";
+  }
+}
+const VERSION = getVersion();
+
+/**
+ * Format errors for common failure modes with actionable messages.
+ */
+function formatError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (message.includes("ECONNREFUSED")) {
+    return `CouchDB connection refused. Is CouchDB running?\n  Start it with: docker compose up -d`;
+  }
+  if (message.includes("401") || message.includes("Unauthorized")) {
+    return `CouchDB authentication failed. Check COUCHDB_USER and COUCHDB_PASSWORD.`;
+  }
+  if (message.includes("404") && message.includes("not_found")) {
+    return `CouchDB database not found. Run: bash scripts/setup-couchdb.sh`;
+  }
+  if (message.includes("ENOTFOUND")) {
+    return `CouchDB host not found. Check COUCHDB_URL (current value may be unreachable).`;
+  }
+
+  return message;
+}
+
 const program = new Command();
 
 program
   .name("obsidian-git-livesync")
   .description("Bridge git pushes to Obsidian via CouchDB + Self-hosted LiveSync")
-  .version("0.1.0")
+  .version(VERSION)
   .option("--config <path>", "path to config file")
   .option("--verbose", "verbose logging", false)
   .option("--dry-run", "show what would be synced without actually syncing", false);
@@ -57,23 +95,28 @@ program
       process.exit(1);
     }
 
-    let result;
-    if (opts.git) {
-      result = await syncGitChanges(config);
-    } else if (opts.all) {
-      result = await syncAll(config);
-    } else if (files.length > 0) {
-      result = await syncFiles(files, config, { delete: opts.delete as boolean });
-    } else {
-      console.error("Specify files, --git, or --all");
+    try {
+      let result;
+      if (opts.git) {
+        result = await syncGitChanges(config);
+      } else if (opts.all) {
+        result = await syncAll(config);
+      } else if (files.length > 0) {
+        result = await syncFiles(files, config, { delete: opts.delete as boolean });
+      } else {
+        console.error("Specify files, --git, or --all");
+        process.exit(1);
+      }
+
+      const total = result.synced.length + result.deleted.length;
+      const errCount = result.errors.length;
+      console.log(`\nDone: ${total} files processed, ${errCount} errors`);
+
+      if (errCount > 0) process.exit(1);
+    } catch (err) {
+      console.error(`[ERROR] ${formatError(err)}`);
       process.exit(1);
     }
-
-    const total = result.synced.length + result.deleted.length;
-    const errCount = result.errors.length;
-    console.log(`\nDone: ${total} files processed, ${errCount} errors`);
-
-    if (errCount > 0) process.exit(1);
   });
 
 program
@@ -151,8 +194,7 @@ program
         process.exit(1);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[FAIL] ${message}`);
+      console.error(`[FAIL] ${formatError(err)}`);
       process.exit(1);
     }
   });
