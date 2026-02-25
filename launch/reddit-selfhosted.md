@@ -1,30 +1,45 @@
 # r/selfhosted post
 
-**Title:** CLI tool to write files directly into Obsidian LiveSync (CouchDB) from any headless environment
+**Title:** Self-hosted Obsidian sync from git — Node.js CLI that writes to CouchDB in LiveSync format
 
 **Body:**
 
-If you run Obsidian with the Self-hosted LiveSync plugin, your notes sync between devices via CouchDB replication. No cloud, no vendor lock-in.
+If you use Obsidian with the Self-hosted LiveSync plugin, your notes sync between devices through CouchDB. No cloud, no Obsidian Sync subscription, full control.
 
-The gap: you can't write into that CouchDB from outside Obsidian. There's no API. The only way to add files to the LiveSync network is through the Obsidian app itself.
+The gap: you can't write to that CouchDB from outside Obsidian. There's no external API. Only the app itself can push files into the LiveSync network.
 
-I built a CLI that solves this by writing directly to CouchDB in LiveSync's internal document format. The result: any process on any server can push files into your Obsidian vault in real time.
+I built a Node.js CLI that solves this by writing directly to CouchDB in LiveSync's document format. Any process on any server — git hook, cron, AI agent, CI pipeline — can push files into your Obsidian vault.
 
 **Stack:**
-- TypeScript CLI (ships as npm package, no install required via npx)
-- Direct CouchDB REST API (no Obsidian, no Electron, no plugin required server-side)
-- Docker Compose for CouchDB if you don't have one running already
-- Post-receive git hook included for the git push → sync workflow
+- Node.js / TypeScript, ships as npm package — `npx obsidian-git-livesync` with no install required
+- Direct CouchDB REST API — no Obsidian, no Electron, nothing running on the server side
+- Docker Compose for CouchDB if you don't have one running
+- Post-receive git hook template included
 
-**Infrastructure you need:**
-- CouchDB instance (Docker Compose file included, or bring your own)
+**What you need:**
+- CouchDB instance (Docker Compose file in the repo, or bring your own)
 - Self-hosted LiveSync plugin on your Obsidian clients
 - Node 18+ on the server side
 
-**Zero cloud dependencies.** Everything runs on your own infrastructure.
+Zero cloud dependencies. Runs entirely on your own infrastructure.
 
-**The honest caveat:** LiveSync's CouchDB schema is not a public API. This tool is reverse-engineered from the plugin source code. It works against the current LiveSync format but could break if the plugin changes its storage schema in a future release.
+**vs livesync-bridge (the Deno version):**
 
-GitHub + Docker Compose + setup script: https://github.com/ecstatic-pirate/obsidian-git-livesync
+`livesync-bridge` is by vrtmrz — the same author as the LiveSync plugin. Functionally similar goal. But:
 
-Happy to answer questions about the CouchDB integration or the LiveSync document format.
+| | livesync-bridge | this tool |
+|---|---|---|
+| Runtime | Deno (broken on v2) | Node.js |
+| Install | Not on npm | `npx obsidian-git-livesync` |
+| Mode | Daemon only | CLI + daemon |
+| One-shot sync | No | Yes (`sync --all`) |
+| Git hook support | No | Yes (template included) |
+| Open issues | 25 | — |
+
+If you already have Deno and it works for you, use that. If you want something that installs in 30 seconds on any machine with Node, use this.
+
+**Honest caveat:** LiveSync's CouchDB schema is internal and not a public API. This is reverse-engineered from the plugin source. It works against the current format but could break if LiveSync changes its storage schema.
+
+GitHub + Docker Compose + setup docs: https://github.com/ecstatic-pirate/obsidian-git-livesync
+
+Happy to answer questions about the CouchDB integration or how the LiveSync document format works under the hood.
