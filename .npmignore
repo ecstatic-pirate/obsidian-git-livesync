@@ -12,4 +12,3 @@ couchdb_data/
 node_modules/
 *.js.map
 .env
-launch/
