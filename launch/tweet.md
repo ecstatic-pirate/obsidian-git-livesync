@@ -1,7 +1,11 @@
 # Tweet
 
-Built a CLI to sync files into Obsidian from any server, CI pipeline, or AI agent — no Obsidian desktop required.
+Built an npm tool to sync markdown to Obsidian from headless environments.
 
-git push → CouchDB → all your devices in seconds.
+Found the "official" alternative was broken (Deno-only, broken on Deno 2, 25 open issues).
+
+Shipped anyway.
+
+npx obsidian-git-livesync sync --all
 
 github.com/ecstatic-pirate/obsidian-git-livesync

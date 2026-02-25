@@ -1,19 +1,32 @@
 # Hacker News — Show HN
 
-**Title:** Show HN: Sync files to Obsidian from any headless environment via git
+**Title:** Show HN: I built an npm alternative to livesync-bridge because the original was broken
 
 **Body:**
 
-I built a CLI tool that bridges git pushes to Obsidian via CouchDB + the Self-hosted LiveSync plugin.
+I run an AI coding agent that writes markdown to git dozens of times a day — daily goals, notes, memory files. Wanted those files on my phone in Obsidian. Instantly, not "wait for desktop to sync."
 
-The problem: If you write markdown from a VPS, CI pipeline, or AI agent, there's no way to get those files into Obsidian on your phone without running Obsidian desktop as an intermediary.
+Self-hosted LiveSync gets you most of the way — CouchDB replication across all devices. The problem: you can't write to CouchDB from outside Obsidian. There's no API. The plugin has to be running.
 
-The solution: obsidian-git-livesync writes directly to CouchDB in LiveSync's document format. Push to git → files appear on all your Obsidian clients in seconds.
+So I built a bridge. Reverse-engineered LiveSync's CouchDB document format from the plugin source, wrote a TypeScript CLI, published to npm. Push to git → run one command → files appear on your phone.
 
-Architecture: git push → post-receive hook → reads .md files → writes to CouchDB → LiveSync replicates to all clients
+After publishing, I found `livesync-bridge` by the LiveSync plugin author. Cloned it. It didn't work:
 
-Tech stack: TypeScript, CouchDB REST API, chokidar (file watching), commander (CLI)
+- Deno-only. Not on npm. Can't npx it.
+- Pinned to Deno 1.x APIs — broken on Deno 2.
+- Daemon-only. No one-shot sync command. No git hook support.
+- 25 open issues. Installation failures, runtime crashes.
+
+The lesson I took away: "does this exist?" is the wrong question. "Can a normal dev use it in 30 seconds?" is the right one.
+
+Mine ships as npm. One command:
+
+```bash
+npx obsidian-git-livesync sync --all
+```
+
+Docker Compose for CouchDB included. Post-receive git hook template included. 12 E2E tests against a real CouchDB instance.
 
 GitHub: https://github.com/ecstatic-pirate/obsidian-git-livesync
 
-Looking for feedback on the approach. The main risk is that LiveSync's CouchDB schema is internal — we're writing to it directly based on reverse-engineering the plugin source.
+Curious if others have hit this headless-Obsidian-writer problem. Would also welcome feedback on the CouchDB integration approach — we're writing to LiveSync's internal format, which is reverse-engineered and could change.
