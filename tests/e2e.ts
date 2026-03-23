@@ -454,7 +454,7 @@ async function testCliSyncAll(): Promise<void> {
     }
 
     // Run the CLI via npx tsx
-    const cliPath = resolve("literal:src/cli.ts");
+    const cliPath = resolve(__dirname, "../src/cli.ts");
     const env = {
       ...process.env,
       COUCHDB_URL: COUCH_URL,
